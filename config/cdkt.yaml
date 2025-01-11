@@ -1,0 +1,30 @@
+includes:
+  - headers/data.yaml
+  - headers/device.yaml
+  - headers/misc.yaml
+  - headers/model.yaml
+  - headers/optimizer.yaml
+
+batch_size: 4
+
+data_root: /home/bernardatte/codes/miniImageNet--ravi
+
+
+way_num: 5
+shot_num: 1
+query_num: 16
+
+test_episode: 200
+
+classifier:
+  name: CDKT
+  kwargs: ~
+
+
+backbone:
+  name: cdkt_backbone
+  kwargs: ~
+
+epoch: 100
+
+
