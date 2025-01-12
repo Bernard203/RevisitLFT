@@ -28,7 +28,7 @@ except ImportError:
     print('[WARNING] install tensorboardX to record simulation logs.')
 
 class CDKT(MetaModel):
-    def __init__(self, n_way, n_support, **kwargs):
+    def __init__(self, n_way, n_support, mean=0.0, tau=0.2, loss="ELBO", **kwargs):
         super(CDKT, self).__init__(**kwargs)
         self.n_way = n_way
         self.n_support = n_support
@@ -53,6 +53,10 @@ class CDKT(MetaModel):
         self.sigma_q = []
 
         self.init_summary()
+        flag = self.get_negmean(mean)
+        self.get_kernel_type()
+        self.get_temperature(tau)
+        self.get_loss(loss)
 
     def parse_feature(self, x, is_feature):
         x = Variable(x.cuda())
@@ -69,9 +73,8 @@ class CDKT(MetaModel):
 
     def set_forward_adaptation(self, z_support, z_query):  # further adaptation, default is fixing feature and train a new softmax clasifier
         # z_support, z_query = self.parse_feature(x, True)
-
         z_support = z_support.contiguous().view(self.n_way * self.n_support, -1)
-        z_query = z_query.contiguous().view(self.n_way * self.n_query, -1)
+        # z_query = z_query.contiguous().view(abs(self.n_way * self.n_query), -1)
 
         y_support = torch.from_numpy(np.repeat(range(self.n_way), self.n_support))
         y_support = Variable(y_support.cuda())
@@ -99,8 +102,8 @@ class CDKT(MetaModel):
                 loss.backward()
                 set_optimizer.step()
 
-        scores = linear_clf(z_query)
-        return scores
+        # scores = linear_clf(z_query)
+        # return scores
 
     def get_steps(self, steps):
         if steps == -1:
@@ -377,6 +380,7 @@ class CDKT(MetaModel):
 
     def MeanFieldELBO(self, y, output, steps=2, REQUIRES_GRAD=False, temperature=1):
         y = torch.tensor(y).long()
+        # self.n_query=14
         N = (self.n_support + self.n_query) * self.n_way
         C = self.n_way
         tilde_f = torch.empty(C, N, requires_grad=REQUIRES_GRAD).to(self.device)
@@ -646,8 +650,8 @@ class CDKT(MetaModel):
             output_list.append(output)
 
         output = torch.cat(output_list, dim=0)
-        loss = self.loss_func(output, query_target.contiguous().view(-1))
-        # loss = self.MeanFieldELBO(y=y_train, output=output, steps=STEPS, REQUIRES_GRAD=False, temperature=self.TEMPERATURE)
+        # loss = self.loss_func(output, query_target.contiguous().view(-1))
+        loss = self.MeanFieldELBO(y=query_target.contiguous().view(-1), output=output, steps=2, REQUIRES_GRAD=False, temperature=self.TEMPERATURE)
         acc = accuracy(output, query_target.contiguous().view(-1))
         return output, acc, loss
 

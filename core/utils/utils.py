@@ -106,6 +106,7 @@ def accuracy(output, target, topk=1):
             ),
         }[output.__class__.__name__](output, topk, 1)
 
+        # if pred.dim() == 3:pred.squeeze_(1)
         pred = pred.t()
         correct = pred.eq(target.view(1, -1).expand_as(pred))
 
